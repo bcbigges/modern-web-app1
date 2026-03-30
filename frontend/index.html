@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Modern Python Web App</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 50px; }
+    h1 { color: #4CAF50; }
+    #message { margin-top: 20px; font-size: 1.2em; }
+  </style>
+</head>
+<body>
+  <h1>Modern Python Web App</h1>
+  <button id="fetchBtn">Get Message from Backend</button>
+  <p id="message">Click the button to fetch data.</p>
+
+  <script>
+    document.getElementById('fetchBtn').addEventListener('click', async () => {
+      try {
+        const response = await fetch('http://localhost:8000/api');
+        const data = await response.json();
+        document.getElementById('message').innerText = data.message;
+      } catch (err) {
+        document.getElementById('message').innerText = 'Failed to fetch backend';
+        console.error(err);
+      }
+    });
+  </script>
+</body>
+</html>
