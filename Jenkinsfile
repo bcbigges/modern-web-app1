@@ -2,7 +2,6 @@ pipeline {
     agent any
     
     environment {
-        // Optional: Define the Python version if needed
         PYTHON_VERSION = "python3"
     }
     
@@ -10,7 +9,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 script {
-                    // Checkout latest code from GitHub
+                    // Checkout the code from GitHub
                     git branch: 'main', url: 'https://github.com/bcbigges/modern-web-app1.git'
                 }
             }
@@ -19,7 +18,16 @@ pipeline {
         stage('Setup Python Environment') {
             steps {
                 script {
-                    // Create and activate a virtual environment
+                    // Install python3-venv if not installed (Debian/Ubuntu systems)
+                    sh ''' 
+                    if ! dpkg -l | grep -q python3-venv; then
+                        echo "python3-venv not found. Installing..."
+                        sudo apt-get update
+                        sudo apt-get install -y python3-venv
+                    fi
+                    '''
+                    
+                    // Create and activate the virtual environment
                     sh ''' 
                     ${PYTHON_VERSION} -m venv venv
                     source venv/bin/activate
@@ -31,7 +39,7 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 script {
-                    // Install necessary Python packages
+                    // Install dependencies using pip
                     sh ''' 
                     source venv/bin/activate
                     pip install --upgrade pip
@@ -44,7 +52,7 @@ pipeline {
         stage('Run Tests') {
             steps {
                 script {
-                    // Optionally, run the tests with pytest
+                    // Run tests using pytest
                     sh ''' 
                     source venv/bin/activate
                     pytest tests/ --maxfail=1 --disable-warnings -q  # Adjust based on your test directory
@@ -56,7 +64,7 @@ pipeline {
         stage('Cleanup') {
             steps {
                 script {
-                    // Deactivate and clean up if needed
+                    // Deactivate the virtual environment
                     sh 'deactivate'
                 }
             }
@@ -65,8 +73,16 @@ pipeline {
 
     post {
         always {
-            // Clean up workspace regardless of the outcome (failure or success)
+            // Clean up workspace after the build completes
             cleanWs()
+        }
+        success {
+            // Optionally, you can send a notification or log something if the build is successful
+            echo 'Build completed successfully!'
+        }
+        failure {
+            // Optionally, you can send a notification or log something if the build fails
+            echo 'Build failed!'
         }
     }
 }
