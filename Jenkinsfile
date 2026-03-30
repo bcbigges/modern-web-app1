@@ -11,7 +11,7 @@ pipeline {
             steps {
                 script {
                     // Checkout latest code from GitHub
-                    git 'https://github.com/bcbigges/modern-web-app1.git'
+                    git branch: 'main', url: 'https://github.com/bcbigges/modern-web-app1.git'
                 }
             }
         }
@@ -35,7 +35,7 @@ pipeline {
                     sh ''' 
                     source venv/bin/activate
                     pip install --upgrade pip
-                    pip install -r requirements.txt  # if you have a requirements.txt
+                    pip install -r requirements.txt  # Ensure you have a requirements.txt
                     '''
                 }
             }
@@ -65,7 +65,7 @@ pipeline {
 
     post {
         always {
-            // Clean up if the job fails or succeeds
+            // Clean up workspace regardless of the outcome (failure or success)
             cleanWs()
         }
     }
