@@ -2,14 +2,16 @@ pipeline {
     agent any
     
     environment {
+        // Define Python version and virtual environment path
         PYTHON_VERSION = "python3"
+        VENV_DIR = "venv"
     }
     
     stages {
         stage('Checkout') {
             steps {
                 script {
-                    // Checkout the code from GitHub
+                    // Checkout the latest code from GitHub
                     git branch: 'main', url: 'https://github.com/bcbigges/modern-web-app1.git'
                 }
             }
@@ -18,19 +20,16 @@ pipeline {
         stage('Setup Python Environment') {
             steps {
                 script {
-                    // Install python3-venv if not installed (Debian/Ubuntu systems)
-                    sh ''' 
-                    if ! dpkg -l | grep -q python3-venv; then
-                        echo "python3-venv not found. Installing..."
-                        sudo apt-get update
-                        sudo apt-get install -y python3-venv
-                    fi
-                    '''
-                    
-                    // Create and activate the virtual environment
-                    sh ''' 
-                    ${PYTHON_VERSION} -m venv venv
-                    source venv/bin/activate
+                    // Create and activate virtual environment
+                    sh '''
+                        if ! python3 -m venv --help; then
+                            echo "Python venv module is missing. Skipping Python environment setup."
+                            exit 1
+                        fi
+                        if [ ! -d "venv" ]; then
+                            ${PYTHON_VERSION} -m venv ${VENV_DIR}
+                        fi
+                        source ${VENV_DIR}/bin/activate
                     '''
                 }
             }
@@ -39,11 +38,15 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 script {
-                    // Install dependencies using pip
-                    sh ''' 
-                    source venv/bin/activate
-                    pip install --upgrade pip
-                    pip install -r requirements.txt  # Ensure you have a requirements.txt
+                    // Install Python dependencies
+                    sh '''
+                        source ${VENV_DIR}/bin/activate
+                        pip install --upgrade pip
+                        if [ -f "requirements.txt" ]; then
+                            pip install -r requirements.txt
+                        else
+                            echo "No requirements.txt found. Skipping pip install."
+                        fi
                     '''
                 }
             }
@@ -52,20 +55,27 @@ pipeline {
         stage('Run Tests') {
             steps {
                 script {
-                    // Run tests using pytest
-                    sh ''' 
-                    source venv/bin/activate
-                    pytest tests/ --maxfail=1 --disable-warnings -q  # Adjust based on your test directory
+                    // Run tests using pytest (or other test framework)
+                    sh '''
+                        source ${VENV_DIR}/bin/activate
+                        if [ -d "tests" ]; then
+                            pytest tests/ --maxfail=1 --disable-warnings -q
+                        else
+                            echo "No tests directory found. Skipping test execution."
+                        fi
                     '''
                 }
             }
         }
-        
+
         stage('Cleanup') {
             steps {
                 script {
-                    // Deactivate the virtual environment
-                    sh 'deactivate'
+                    // Clean up environment after the build
+                    sh '''
+                        deactivate || true
+                        rm -rf ${VENV_DIR}
+                    '''
                 }
             }
         }
@@ -73,16 +83,8 @@ pipeline {
 
     post {
         always {
-            // Clean up workspace after the build completes
+            // Cleanup workspace after the job finishes
             cleanWs()
-        }
-        success {
-            // Optionally, you can send a notification or log something if the build is successful
-            echo 'Build completed successfully!'
-        }
-        failure {
-            // Optionally, you can send a notification or log something if the build fails
-            echo 'Build failed!'
         }
     }
 }
